@@ -151,14 +151,14 @@ class ZimFileReader constructor(
     }
 
   private fun loadAsset(uri: String): InputStream? {
-    val infoPair = jniKiwixReader.getDirectAccessInformation(uri.filePath)
+    val infoPair = jniKiwixReader.getDirectAccessInformation(uri.filePathForVideo)
     if (infoPair == null || !File(infoPair.filename).exists()) {
       return loadAssetFromCache(uri)
     }
     return AssetFileDescriptor(
       infoPair.parcelFileDescriptor,
       infoPair.offset,
-      jniKiwixReader.getArticleSize(uri.filePath)
+      jniKiwixReader.getArticleSize(uri.filePathForVideo)
     ).createInputStream()
   }
 
@@ -197,7 +197,7 @@ class ZimFileReader constructor(
   }
 
   private fun getContentAndMimeType(uri: String) = with(JNIKiwixString()) {
-    getContent(url = JNIKiwixString(uri.filePath), mime = this) to value
+    getContent(url = JNIKiwixString(uri.filePathForContent), mime = this) to value
   }
 
   private fun getContent(
@@ -264,9 +264,15 @@ class ZimFileReader constructor(
 }
 
 private val Uri.filePath: String
-  get() = toString().filePath
-private val String.filePath: String
+  get() = toString().filePathForContent
+
+// See Issue https://github.com/kiwix/kiwix-android/issues/2202
+private val String.filePathForVideo: String
   get() = substringAfter(CONTENT_PREFIX).substringBefore("#").substringBefore("?")
+
+// See Issue https://github.com/kiwix/kiwix-android/issues/2671
+private val String.filePathForContent: String
+  get() = substringAfter(CONTENT_PREFIX).substringBefore("#")
 
 // Truncate mime-type (everything after the first space and semi-colon(if exists)
 val String.truncateMimeType: String

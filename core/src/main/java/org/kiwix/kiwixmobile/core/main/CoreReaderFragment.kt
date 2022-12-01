@@ -1660,7 +1660,7 @@ abstract class CoreReaderFragment :
       }
     }
     if (handleEvent) {
-      showOpenInNewTabDialog(url)
+      zimReaderContainer?.getRedirect(url)?.let(::showOpenInNewTabDialog)
     }
   }
 
