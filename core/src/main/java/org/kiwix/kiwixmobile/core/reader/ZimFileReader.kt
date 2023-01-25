@@ -24,11 +24,11 @@ import android.util.Log
 import androidx.core.net.toUri
 import io.reactivex.Completable
 import io.reactivex.schedulers.Schedulers
-import org.kiwix.kiwixlib.DirectAccessInfo
-import org.kiwix.kiwixlib.JNIKiwixException
-import org.kiwix.kiwixlib.JNIKiwixInt
-import org.kiwix.kiwixlib.JNIKiwixReader
-import org.kiwix.kiwixlib.JNIKiwixString
+import org.kiwix.libzim.DirectAccessInfo
+import org.kiwix.libkiwix.JNIKiwixException
+import org.kiwix.libkiwix.JNIKiwixInt
+import org.kiwix.libzim.Archive
+import org.kiwix.libkiwix.JNIKiwixString
 import org.kiwix.kiwixmobile.core.CoreApp
 import org.kiwix.kiwixmobile.core.NightModeConfig
 import org.kiwix.kiwixmobile.core.entity.LibraryNetworkEntity.Book
@@ -37,6 +37,7 @@ import org.kiwix.kiwixmobile.core.main.UNINITIALISE_HTML
 import org.kiwix.kiwixmobile.core.reader.ZimFileReader.Companion.CONTENT_PREFIX
 import org.kiwix.kiwixmobile.core.search.SearchSuggestion
 import org.kiwix.kiwixmobile.core.utils.files.FileUtils
+import org.kiwix.libzim.Entry
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -50,7 +51,7 @@ private const val TAG = "ZimFileReader"
 
 class ZimFileReader constructor(
   val zimFile: File,
-  private val jniKiwixReader: JNIKiwixReader = JNIKiwixReader(zimFile.canonicalPath),
+  private val jniKiwixReader: Archive = Archive(zimFile.canonicalPath),
   private val nightModeConfig: NightModeConfig
 ) {
   interface Factory {
@@ -72,15 +73,15 @@ class ZimFileReader constructor(
    * (complete, nopic, novid, etc) may return the same title.
    */
   val title: String get() = jniKiwixReader.title ?: "No Title Found"
-  val mainPage: String get() = jniKiwixReader.mainPage
-  val id: String get() = jniKiwixReader.id
-  val fileSize: Int get() = jniKiwixReader.fileSize
-  val creator: String get() = jniKiwixReader.creator
-  val publisher: String get() = jniKiwixReader.publisher
-  val name: String get() = jniKiwixReader.name?.takeIf(String::isNotEmpty) ?: id
+  val mainPage: String get() = jniKiwixReader.mainEntry.path
+  val id: String get() = jniKiwixReader.uuid
+  val fileSize: Long get() = jniKiwixReader.filesize
+  val creator: String get() = jniKiwixReader.getMetadata("Creator")
+  val publisher: String get() = jniKiwixReader.getMetadata("Publisher")
+  val name: String get() = jniKiwixReader.getMetadata("name")?.takeIf(String::isNotEmpty) ?: id
   val date: String get() = jniKiwixReader.date
   val description: String get() = jniKiwixReader.description
-  val favicon: String? get() = jniKiwixReader.favicon
+  val favicon: String? get() = jniKiwixReader.getEntryByPath("").redirect.data.data
   val language: String get() = jniKiwixReader.language
   val tags: String get() = "${getContent("M/Tags")}"
   private val mediaCount: Int?
@@ -109,10 +110,10 @@ class ZimFileReader constructor(
   }
 
   fun getPageUrlFrom(title: String): String? =
-    valueOfJniStringAfter { jniKiwixReader.getPageUrlFromTitle(title, it) }
+    valueOfJniStringAfter { jniKiwixReader.getEntryByTitle(title).title }
 
   fun getRandomArticleUrl(): String? =
-    valueOfJniStringAfter(jniKiwixReader::getRandomPage)
+    valueOfJniStringAfter(jniKiwixReader::getRandomEntry)
 
   fun load(uri: String): InputStream? {
     val extension = uri.substringAfterLast(".")
@@ -140,7 +141,9 @@ class ZimFileReader constructor(
     }
 
   private fun toRedirect(url: String) =
-    "$CONTENT_PREFIX${jniKiwixReader.checkUrl(url.toUri().filePath)}".toUri()
+    "$CONTENT_PREFIX${
+      jniKiwixReader.getEntryByPath(url.toUri().filePath).getItem(true).path
+    }".toUri()
 
   private fun loadContent(uri: String) =
     try {
@@ -151,14 +154,14 @@ class ZimFileReader constructor(
     }
 
   private fun loadAsset(uri: String): InputStream? {
-    val infoPair = jniKiwixReader.getDirectAccessInformation(uri.filePath)
+    val infoPair = jniKiwixReader.getEntryByPath(uri.filePath).getItem(true).directAccessInformation
     if (infoPair == null || !File(infoPair.filename).exists()) {
       return loadAssetFromCache(uri)
     }
     return AssetFileDescriptor(
       infoPair.parcelFileDescriptor,
       infoPair.offset,
-      jniKiwixReader.getArticleSize(uri.filePath)
+      jniKiwixReader.getEntryByPath(uri.filePath).getItem(true).size
     ).createInputStream()
   }
 

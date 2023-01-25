@@ -25,11 +25,11 @@ import androidx.test.uiautomator.UiDevice
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import org.kiwix.kiwixlib.JNIKiwixReader
 import org.kiwix.kiwixmobile.BaseActivityTest
 import org.kiwix.kiwixmobile.core.NightModeConfig
 import org.kiwix.kiwixmobile.core.reader.ZimFileReader
 import org.kiwix.kiwixmobile.core.utils.SharedPreferenceUtil
+import org.kiwix.libzim.Archive
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -63,7 +63,7 @@ class MimeTypeTest : BaseActivityTest() {
     }
     val zimFileReader = ZimFileReader(
       zimFile,
-      JNIKiwixReader(zimFile.canonicalPath),
+      Archive(zimFile.canonicalPath),
       NightModeConfig(SharedPreferenceUtil(context), context)
     )
     zimFileReader.getRandomArticleUrl()?.let {

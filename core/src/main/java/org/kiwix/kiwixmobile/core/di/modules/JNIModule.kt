@@ -20,8 +20,8 @@ package org.kiwix.kiwixmobile.core.di.modules
 import android.content.Context
 import dagger.Module
 import dagger.Provides
-import org.kiwix.kiwixlib.JNIKiwix
-import org.kiwix.kiwixlib.JNIKiwixSearcher
+import org.kiwix.libkiwix.JNIKiwix
+import org.kiwix.libzim.Searcher
 import javax.inject.Singleton
 
 @Module
@@ -29,9 +29,9 @@ class JNIModule {
   @Provides @Singleton
   fun providesJNIKiwix(context: Context): JNIKiwix = JNIKiwix(context)
 
-  @Provides @Singleton fun providesJNIKiwixSearcher(): JNIKiwixSearcher? {
+  @Provides @Singleton fun providesJNIKiwixSearcher(): Searcher? {
     return try {
-      JNIKiwixSearcher()
+      Searcher()
     } catch (ignore: UnsatisfiedLinkError) {
       null
     }
