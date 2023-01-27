@@ -31,6 +31,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Rename tarask file
+        run: ./gradlew renameTarakFile
+
       - name: Static Analysis
         run: ./gradlew ktlintCheck
 

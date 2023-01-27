@@ -54,6 +54,9 @@ jobs:
           disable-animations: false
           script: bash contrib/instrumentation.sh
 
+      - name: Rename tarask file
+        run: ./gradlew renameTarakFile
+
       - name: create instrumentation coverage on google_apis for android 33
         uses: ReactiveCircus/android-emulator-runner@v2.25.0
         env:

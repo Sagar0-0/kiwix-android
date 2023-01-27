@@ -21,6 +21,9 @@ jobs:
         with:
           java-version: 11
 
+      - name: Rename tarask file
+        run: ./gradlew renameTarakFile
+
       - name: build debug
         run: ./gradlew assembleNightly
 

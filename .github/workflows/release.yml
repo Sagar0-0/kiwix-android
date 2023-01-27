@@ -36,6 +36,9 @@ jobs:
       - name: Set tag variable
         run: echo "TAG=$(echo ${GITHUB_REF:10})" >> $GITHUB_ENV
 
+      - name: Rename tarask file
+        run: ./gradlew renameTarakFile
+
       - name: Publish app to download.kiwix.org
         env:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
