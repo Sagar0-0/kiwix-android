@@ -82,6 +82,7 @@ class ZimHostFragment : BaseFragment(), ZimHostCallbacks, ZimHostContract.View {
   private lateinit var serviceConnection: ServiceConnection
   private var progressDialog: ProgressDialog? = null
   private var activityZimHostBinding: ActivityZimHostBinding? = null
+  private var allBooks: List<BooksOnDiskListItem>? = null
   private val selectedBooksPath: ArrayList<String>
     get() {
       return booksAdapter.items
@@ -98,6 +99,16 @@ class ZimHostFragment : BaseFragment(), ZimHostCallbacks, ZimHostContract.View {
           }
         }
         as ArrayList<String>
+    }
+
+  private val selectedBooks: List<BooksOnDiskListItem>
+    get() {
+      return booksAdapter.items
+        .filter(BooksOnDiskListItem::isSelected)
+        .filterIsInstance<BookOnDisk>()
+        .map {
+          it
+        }
     }
 
   override fun onCreateView(
@@ -320,6 +331,7 @@ class ZimHostFragment : BaseFragment(), ZimHostCallbacks, ZimHostContract.View {
     activityZimHostBinding?.startServerButton?.setBackgroundColor(
       resources.getColor(R.color.stopServerRed)
     )
+    booksAdapter.items = selectedBooks
     bookDelegate.selectionMode = SelectionMode.NORMAL
     booksAdapter.notifyDataSetChanged()
   }
@@ -346,6 +358,7 @@ class ZimHostFragment : BaseFragment(), ZimHostCallbacks, ZimHostContract.View {
     activityZimHostBinding?.startServerButton?.setBackgroundColor(
       resources.getColor(R.color.startServerGreen)
     )
+    allBooks?.let { booksAdapter.items = it }
     bookDelegate.selectionMode = SelectionMode.MULTI
     booksAdapter.notifyDataSetChanged()
   }
@@ -420,6 +433,7 @@ class ZimHostFragment : BaseFragment(), ZimHostCallbacks, ZimHostContract.View {
 
   override fun addBooks(books: List<BooksOnDiskListItem>) {
     booksAdapter.items = books
+    allBooks = books
   }
 
   override fun onIpAddressValid() {
