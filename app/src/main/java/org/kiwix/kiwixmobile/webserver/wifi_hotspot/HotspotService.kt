@@ -30,6 +30,7 @@ import org.kiwix.kiwixmobile.core.utils.ServerUtils.getSocketAddress
 import org.kiwix.kiwixmobile.webserver.WebServerHelper
 import org.kiwix.kiwixmobile.webserver.ZimHostCallbacks
 import org.kiwix.kiwixmobile.webserver.ZimHostFragment
+import org.kiwix.kiwixmobile.webserver.ZimHostFragment.Companion.RESTART_SERVER
 import java.lang.ref.WeakReference
 import javax.inject.Inject
 
@@ -69,21 +70,30 @@ class HotspotService :
     super.onDestroy()
   }
 
+  @Suppress("NestedBlockDepth")
   override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
     when (intent.action) {
-      ACTION_START_SERVER ->
+      ACTION_START_SERVER -> {
+        val restartServer = intent.getBooleanExtra(RESTART_SERVER, false)
         intent.getStringArrayListExtra(ZimHostFragment.SELECTED_ZIM_PATHS_KEY)?.let {
-          if (webServerHelper?.startServerHelper(it) == true) {
+          if (webServerHelper?.startServerHelper(
+              it,
+              restartServer
+            ) == true
+          ) {
             zimHostCallbacks?.onServerStarted(getSocketAddress())
             startForegroundNotificationHelper()
-            Toast.makeText(
-              this, R.string.server_started_successfully_toast_message,
-              Toast.LENGTH_SHORT
-            ).show()
+            if (!restartServer) {
+              Toast.makeText(
+                this, R.string.server_started_successfully_toast_message,
+                Toast.LENGTH_SHORT
+              ).show()
+            }
           } else {
             onServerFailedToStart()
           }
         } ?: kotlin.run(::onServerFailedToStart)
+      }
       ACTION_STOP_SERVER -> {
         Toast.makeText(
           this, R.string.server_stopped_successfully_toast_message,

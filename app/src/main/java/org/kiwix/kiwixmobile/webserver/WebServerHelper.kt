@@ -43,11 +43,11 @@ class WebServerHelper @Inject constructor(
   private var isServerStarted = false
   private var validIpAddressDisposable: Disposable? = null
 
-  fun startServerHelper(selectedBooksPath: ArrayList<String>): Boolean {
+  fun startServerHelper(selectedBooksPath: ArrayList<String>, restartServer: Boolean): Boolean {
     val ip = getIpAddress()
     return if (ip.isNullOrEmpty()) {
       false
-    } else if (startAndroidWebServer(selectedBooksPath)) {
+    } else if (startAndroidWebServer(selectedBooksPath, restartServer)) {
       true
     } else {
       isServerStarted
@@ -61,15 +61,25 @@ class WebServerHelper @Inject constructor(
     }
   }
 
-  private fun startAndroidWebServer(selectedBooksPath: ArrayList<String>): Boolean {
+  private fun startAndroidWebServer(
+    selectedBooksPath: ArrayList<String>,
+    restartServer: Boolean
+  ): Boolean {
     if (!isServerStarted) {
-      ServerUtils.port = DEFAULT_PORT
-      kiwixServer = kiwixServerFactory.createKiwixServer(selectedBooksPath).also {
-        updateServerState(it.startServer(ServerUtils.port))
-        Log.d(TAG, "Server status$isServerStarted")
-      }
+      startKiwixServer(selectedBooksPath)
+    } else if (restartServer) {
+      kiwixServer?.stopServer()
+      startKiwixServer(selectedBooksPath)
     }
     return isServerStarted
+  }
+
+  private fun startKiwixServer(selectedBooksPath: ArrayList<String>) {
+    ServerUtils.port = DEFAULT_PORT
+    kiwixServer = kiwixServerFactory.createKiwixServer(selectedBooksPath).also {
+      updateServerState(it.startServer(ServerUtils.port))
+      Log.d(TAG, "Server status$isServerStarted")
+    }
   }
 
   private fun updateServerState(isStarted: Boolean) {
