@@ -1,6 +1,6 @@
 /*
  * Kiwix Android
- * Copyright (c) 2019 Kiwix <android.kiwix.org>
+ * Copyright (c) 2022 Kiwix <android.kiwix.org>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -16,24 +16,41 @@
  *
  */
 
-package org.kiwix.kiwixmobile.core.utils.files
+package org.kiwix.kiwixmobile.utils.files
 
+import androidx.core.content.edit
+import androidx.preference.PreferenceManager
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
-import org.assertj.core.api.Assertions.assertThat
+import org.junit.Before
+import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.kiwix.kiwixmobile.BaseActivityTest
 import org.kiwix.kiwixmobile.core.CoreApp
 import org.kiwix.kiwixmobile.core.entity.LibraryNetworkEntity.Book
+import org.kiwix.kiwixmobile.core.utils.SharedPreferenceUtil
+import org.kiwix.kiwixmobile.core.utils.files.FileUtils
 import java.io.File
 
-class FileUtilsTest {
+class FileUtilsTest : BaseActivityTest() {
 
   private val mockFile: File = mockk()
   private val testBook = Book().apply { file = mockFile }
   private val testId = "8ce5775a-10a9-bbf3-178a-9df69f23263c"
   private val fileName = "/data/user/0/org.kiwix.kiwixmobile/files${File.separator}$testId"
+
+  @Before
+  override fun waitForIdle() {
+    UiDevice.getInstance(InstrumentationRegistry.getInstrumentation()).waitForIdle()
+    PreferenceManager.getDefaultSharedPreferences(context).edit {
+      putBoolean(SharedPreferenceUtil.PREF_SHOW_INTRO, false)
+      putBoolean(SharedPreferenceUtil.PREF_WIFI_ONLY, false)
+    }
+  }
 
   @BeforeEach
   fun init() {
@@ -41,30 +58,33 @@ class FileUtilsTest {
   }
 
   @Test
-  fun `Filename ends with zim and file does not exist at the location`() {
+  fun fileNameEndsWithZimAndFileDoesNotExistAtTheLocation() {
     testWith(".zim", false)
   }
 
   @Test
-  fun `Filename ends with zim and file exists at the location`() {
+  fun fileNameEndsWithZimAndFileExistsAtTheLocation() {
     testWith(".zim", true)
   }
 
   @Test
-  fun `Filename ends with zim part and file does not exist at the location`() {
+  fun fileNameEndsWithZimPartAndFileDoesNotExistAtTheLocation() {
     testWith(".zim.part", false)
   }
 
   @Test
-  fun `Filename ends with zim part and file exists at the location`() {
+  fun fileNameEndsWithZimPartAndFileExistsAtTheLocation() {
     testWith(".zim.part", true)
   }
 
   @Test
-  fun `Filename ends with zimXX and no such file exists at any such location`() {
+  fun fileNameEndsWithZimAndNoSuchFileExistsAtAnySuchLocation() {
     expect("zimab", false)
-    assertThat(FileUtils.getAllZimParts(testBook).size).isEqualTo(0)
-      .withFailMessage("Nothing is returned in this case")
+    assertEquals(
+      FileUtils.getAllZimParts(testBook).size,
+      0,
+      "Nothing is returned in this case"
+    )
   }
 
   private fun testWith(extension: String, fileExists: Boolean) {
@@ -73,14 +93,23 @@ class FileUtilsTest {
     CoreApp.instance = coreApp
     every { coreApp.packageName } returns "mock_package"
     val files = FileUtils.getAllZimParts(testBook)
-    assertThat(files.size).isEqualTo(1)
-      .withFailMessage("Only a single book is returned in case the file has extension $extension")
+    assertEquals(
+      files.size,
+      1,
+      "Only a single book is returned in case the file has extension $extension"
+    )
     if (fileExists) {
-      assertThat(testBook.file).isEqualTo(files[0])
-        .withFailMessage("The filename retained as such")
+      assertEquals(
+        testBook.file,
+        files[0],
+        "The filename retained as such"
+      )
     } else {
-      assertThat(testBook.file.toString() + ".part").isEqualTo(files[0].path)
-        .withFailMessage("The filename is appended with .part")
+      assertEquals(
+        testBook.file.toString() + ".part",
+        files[0].path,
+        "The filename is appended with .part"
+      )
     }
   }
 
@@ -90,42 +119,42 @@ class FileUtilsTest {
   }
 
   @Test
-  fun `test decode file name`() {
+  fun testDecodeFileName() {
     val fileName =
       FileUtils.getDecodedFileName(
         url = "https://kiwix.org/contributors/contributors_list.pdf",
         src = null
       )
-    assertThat(fileName).isEqualTo("contributors_list.pdf")
+    assertEquals(fileName, "contributors_list.pdf")
   }
 
   @Test
-  fun `test file name if extension doesn't exist`() {
+  fun testFileNameIfExtensionDoesNotExist() {
     val fileName = FileUtils.getDecodedFileName(url = "https://kiwix.org/contributors/", src = null)
-    assertThat(fileName).isEqualTo("")
+    assertEquals(fileName, "")
   }
 
   @Test
-  fun `test file name if the url and src doesn't exist`() {
+  fun testFileNameIfTheUrlAndSrcDoesNotExist() {
     val fileName = FileUtils.getDecodedFileName(url = null, src = null)
-    assertThat(fileName).isEqualTo("")
+    assertEquals(fileName, "")
   }
 
   @Test
-  fun `test file name if only file name exist`() {
+  fun testFileNameIfOnlyFileNameExist() {
     val fileName = FileUtils.getDecodedFileName(src = "android_tutorials.pdf", url = null)
-    assertThat(fileName).isEqualTo("")
+    assertEquals(fileName, "")
   }
 
   @Test
-  fun `test file name if url doesn't exist`() {
+  fun testFileNameIfUrlDoesNotExist() {
     val fileName = FileUtils.getDecodedFileName(url = null, src = "/html/images/test.png")
-    assertThat(fileName).isEqualTo("test.png")
+    assertEquals(fileName, "test.png")
   }
 
   @Test
-  fun `test file name if url and src's extension doesn't exist`() {
+  fun testFileNameIfUrlAndSrcExtensionDoesNotExist() {
     val fileName = FileUtils.getDecodedFileName(url = null, src = "/html/images/")
-    assertThat(fileName).isEqualTo("")
+    assertEquals(fileName, "")
   }
 }
